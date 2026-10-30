@@ -1,0 +1,8 @@
+node_modules
+.output
+.git
+.tanstack
+.nitro
+data
+*.log
+.DS_Store

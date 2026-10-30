@@ -1,0 +1,18 @@
+services:
+  logboek:
+    build: .
+    container_name: logboek
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      # Zet op "true" zodra je de app via HTTPS bereikt (bv. achter een reverse proxy).
+      COOKIE_SECURE: "false"
+      # Alleen tijdelijk aanzetten om het account te resetten (data blijft behouden):
+      # LOGBOEK_RESET_AUTH: "true"
+    volumes:
+      # Alle data (database + geüploade documenten) staat in dit volume.
+      - logboek-data:/data
+
+volumes:
+  logboek-data:
