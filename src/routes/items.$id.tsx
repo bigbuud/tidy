@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { ArrowLeft, Paperclip, Pencil, Trash2, Upload } from "lucide-react";
 import { AppHeader } from "@/components/AppHeader";
+import { AssetAvatar } from "@/components/AssetAvatar";
 import { AssetDialog } from "@/components/AssetDialog";
 import { DocList } from "@/components/DocList";
 import { LogEditDialog } from "@/components/LogEditDialog";
@@ -64,7 +65,6 @@ function ItemPage() {
   if (!data) return null;
   const { asset, logs, docs } = data;
   const cat = categoryOf(asset.category);
-  const Icon = cat.icon;
   const showMileage = asset.category === "auto" || asset.category === "moto";
   const generalDocs = docs.filter((d) => !d.log_id);
   const total = logs.reduce((s, l) => s + (l.cost ?? 0), 0);
@@ -83,9 +83,13 @@ function ItemPage() {
 
         <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
           <div className="flex items-center gap-4">
-            <span className={cn("grid size-14 shrink-0 place-items-center rounded-2xl", cat.tone)}>
-              <Icon className="size-7" />
-            </span>
+            <AssetAvatar
+              id={asset.id}
+              category={asset.category}
+              photoV={asset.photo_v}
+              className="size-16 rounded-2xl sm:size-20"
+              iconClassName="size-8"
+            />
             <div className="min-w-0">
               <h1 className="font-display text-3xl font-bold sm:text-4xl">{asset.name}</h1>
               <p className="text-sm text-muted-foreground">{cat.label}</p>

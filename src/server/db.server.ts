@@ -59,6 +59,13 @@ export function getDb(): DatabaseSync {
     CREATE INDEX IF NOT EXISTS idx_documents_asset ON documents(asset_id);
     CREATE INDEX IF NOT EXISTS idx_documents_log ON documents(log_id);
   `);
+  // Migratie: foto per item (bestaande databases krijgen de kolommen er bij).
+  const cols = db.prepare("PRAGMA table_info(assets)").all() as { name: string }[];
+  if (!cols.some((c) => c.name === "photo_file")) {
+    db.exec(
+      "ALTER TABLE assets ADD COLUMN photo_file TEXT; ALTER TABLE assets ADD COLUMN photo_v INTEGER;",
+    );
+  }
   // Escape hatch: start the container once with LOGBOEK_RESET_AUTH=true to
   // remove the account (data stays) and run the setup again.
   if (process.env["LOGBOEK_RESET_AUTH"] === "true") {

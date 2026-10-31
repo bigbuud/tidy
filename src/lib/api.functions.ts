@@ -19,6 +19,8 @@ export type Asset = {
   name: string;
   category: string;
   description: string;
+  /** Tijdstip van de laatste fotowijziging (voor de URL), of null zonder foto. */
+  photo_v: number | null;
   log_count: number;
   total_cost: number | null;
   last_date: string | null;
@@ -152,7 +154,7 @@ export const listAssets = createServerFn({ method: "GET" }).handler(async () => 
   const { getDb } = await database();
   return getDb()
     .prepare(
-      `SELECT a.id, a.name, a.category, a.description,
+      `SELECT a.id, a.name, a.category, a.description, a.photo_v,
         (SELECT COUNT(*) FROM logs l WHERE l.asset_id = a.id) AS log_count,
         (SELECT SUM(cost) FROM logs l WHERE l.asset_id = a.id) AS total_cost,
         (SELECT MAX(date) FROM logs l WHERE l.asset_id = a.id) AS last_date
@@ -168,8 +170,9 @@ export const getAsset = createServerFn({ method: "GET" })
     const { getDb } = await database();
     const db = getDb();
     const asset = db
-      .prepare("SELECT id, name, category, description FROM assets WHERE id = ?")
-      .get(data.id) as Pick<Asset, "id" | "name" | "category" | "description"> | undefined;
+      .prepare("SELECT id, name, category, description, photo_v FROM assets WHERE id = ?")
+      .get(data.id) as
+      Pick<Asset, "id" | "name" | "category" | "description" | "photo_v"> | undefined;
     if (!asset) return null;
     const logs = db
       .prepare(
@@ -219,8 +222,24 @@ export const deleteAsset = createServerFn({ method: "POST" })
     const files = db
       .prepare("SELECT stored_name FROM documents WHERE asset_id = ?")
       .all(data.id) as { stored_name: string }[];
+    const photo = db.prepare("SELECT photo_file FROM assets WHERE id = ?").get(data.id) as
+      { photo_file: string | null } | undefined;
     db.prepare("DELETE FROM assets WHERE id = ?").run(data.id);
     files.forEach((f) => removeStoredFile(f.stored_name));
+    if (photo?.photo_file) removeStoredFile(photo.photo_file);
+    return { ok: true };
+  });
+
+export const removePhoto = createServerFn({ method: "POST" })
+  .inputValidator((d: { id: number }) => parse(idSchema, d))
+  .handler(async ({ data }) => {
+    (await auth()).requireUser();
+    const { getDb, removeStoredFile } = await database();
+    const db = getDb();
+    const row = db.prepare("SELECT photo_file FROM assets WHERE id = ?").get(data.id) as
+      { photo_file: string | null } | undefined;
+    db.prepare("UPDATE assets SET photo_file = NULL, photo_v = NULL WHERE id = ?").run(data.id);
+    if (row?.photo_file) removeStoredFile(row.photo_file);
     return { ok: true };
   });
 

@@ -3,6 +3,7 @@ import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { BookOpen, ChevronRight, Plus } from "lucide-react";
 import { AppHeader } from "@/components/AppHeader";
+import { AssetAvatar } from "@/components/AssetAvatar";
 import { AssetDialog } from "@/components/AssetDialog";
 import { Button } from "@/components/ui/button";
 import { listAssets } from "@/lib/api.functions";
@@ -89,7 +90,6 @@ function Dashboard() {
           <ul className="divide-y overflow-hidden rounded-2xl border bg-card">
             {shown.map((a) => {
               const cat = categoryOf(a.category);
-              const Icon = cat.icon;
               return (
                 <li key={a.id}>
                   <Link
@@ -97,14 +97,12 @@ function Dashboard() {
                     params={{ id: String(a.id) }}
                     className="group flex items-center gap-4 px-4 py-4 transition-colors hover:bg-secondary/60 focus-visible:bg-secondary/60 focus-visible:outline-none sm:px-5"
                   >
-                    <span
-                      className={cn(
-                        "grid size-11 shrink-0 place-items-center rounded-xl",
-                        cat.tone,
-                      )}
-                    >
-                      <Icon className="size-5" />
-                    </span>
+                    <AssetAvatar
+                      id={a.id}
+                      category={a.category}
+                      photoV={a.photo_v}
+                      className="size-11 rounded-xl"
+                    />
                     <div className="min-w-0 flex-1">
                       <h3 className="truncate text-base font-semibold tracking-tight">{a.name}</h3>
                       <p className="text-sm text-muted-foreground">{cat.label}</p>
