@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { ArrowLeft, FileText, Paperclip, Pencil, Trash2, Upload } from "lucide-react";
 import { AppHeader } from "@/components/AppHeader";
 import { AssetDialog } from "@/components/AssetDialog";
+import { LogEditDialog } from "@/components/LogEditDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -278,6 +279,7 @@ function ItemPage() {
                           {l.cost != null && (
                             <span className="font-mono text-sm">{euro(l.cost)}</span>
                           )}
+                          <LogEditDialog log={l} showMileage={showMileage} onSaved={refresh} />
                           <Button
                             variant="ghost"
                             size="icon"

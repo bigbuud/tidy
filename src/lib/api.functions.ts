@@ -257,6 +257,22 @@ export const addLog = createServerFn({ method: "POST" })
     return { id: Number(r.lastInsertRowid) };
   });
 
+const updateLogSchema = logSchema
+  .omit({ assetId: true })
+  .extend({ id: z.number().int().positive() });
+
+export const updateLog = createServerFn({ method: "POST" })
+  .inputValidator((d: z.input<typeof updateLogSchema>) => parse(updateLogSchema, d))
+  .handler(async ({ data }) => {
+    (await auth()).requireUser();
+    const { getDb } = await database();
+    const res = getDb()
+      .prepare("UPDATE logs SET date = ?, title = ?, notes = ?, cost = ?, mileage = ? WHERE id = ?")
+      .run(data.date, data.title, data.notes, data.cost, data.mileage, data.id);
+    if (res.changes === 0) throw new Error("Log niet gevonden");
+    return { id: data.id };
+  });
+
 export const deleteLog = createServerFn({ method: "POST" })
   .inputValidator((d: { id: number }) => parse(idSchema, d))
   .handler(async ({ data }) => {
