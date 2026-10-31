@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Pencil } from "lucide-react";
+import { Paperclip, Pencil } from "lucide-react";
 import { toast } from "sonner";
+import { DocList } from "@/components/DocList";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -12,7 +13,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { updateLog, type LogEntry } from "@/lib/api.functions";
+import { updateLog, type Doc, type LogEntry } from "@/lib/api.functions";
+import { uploadFiles } from "@/lib/uploads";
 
 const toForm = (l: LogEntry) => ({
   date: l.date,
@@ -24,22 +26,30 @@ const toForm = (l: LogEntry) => ({
 
 export function LogEditDialog({
   log,
+  assetId,
+  docs,
   showMileage,
   onSaved,
 }: {
   log: LogEntry;
+  assetId: number;
+  docs: Doc[];
   showMileage: boolean;
   onSaved: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [f, setF] = useState(toForm(log));
+  const [pending, setPending] = useState<File[]>([]);
 
   return (
     <Dialog
       open={open}
       onOpenChange={(o) => {
         setOpen(o);
-        if (o) setF(toForm(log));
+        if (o) {
+          setF(toForm(log));
+          setPending([]);
+        }
       }}
     >
       <DialogTrigger asChild>
@@ -72,6 +82,15 @@ export function LogEditDialog({
                 },
               });
               setOpen(false);
+              if (pending.length) {
+                try {
+                  await uploadFiles(assetId, pending, log.id);
+                } catch (err) {
+                  onSaved();
+                  toast.error(`Log aangepast, maar upload mislukt: ${(err as Error).message}`);
+                  return;
+                }
+              }
               onSaved();
               toast.success("Log aangepast");
             } catch (err) {
@@ -130,6 +149,21 @@ export function LogEditDialog({
               value={f.notes}
               onChange={(e) => setF({ ...f, notes: e.target.value })}
             />
+          </div>
+          <div className="space-y-2">
+            <Label>Bijlagen</Label>
+            <DocList docs={docs} onChange={onSaved} />
+            <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed px-3 py-2.5 text-sm text-muted-foreground transition-colors hover:border-input hover:text-foreground">
+              <Paperclip className="size-4" />
+              {pending.length ? `${pending.length} bestand(en) gekozen` : "Bijlage toevoegen"}
+              <input
+                type="file"
+                multiple
+                className="sr-only"
+                aria-label="Bijlage toevoegen"
+                onChange={(e) => setPending(Array.from(e.target.files ?? []))}
+              />
+            </label>
           </div>
           <Button type="submit" className="w-full">
             Opslaan

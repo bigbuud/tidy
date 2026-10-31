@@ -6,16 +6,16 @@ import { logout } from "@/lib/api.functions";
 export function AppHeader({ username }: { username: string }) {
   const navigate = useNavigate();
   return (
-    <header className="border-b bg-card/80 backdrop-blur">
-      <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
-        <Link to="/" className="flex items-center gap-2">
-          <span className="grid h-9 w-9 place-items-center rounded-md bg-primary text-primary-foreground">
-            <BookOpen className="h-5 w-5" />
+    <header className="sticky top-0 z-30 border-b bg-background/80 backdrop-blur-md">
+      <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
+        <Link to="/" className="flex items-center gap-2.5">
+          <span className="grid size-8 place-items-center rounded-lg bg-signal text-signal-foreground">
+            <BookOpen className="size-[18px]" />
           </span>
-          <span className="font-display text-xl font-bold">Logboek</span>
+          <span className="font-display text-lg font-bold tracking-tight">Logboek</span>
         </Link>
-        <div className="flex items-center gap-3">
-          <span className="hidden text-sm text-muted-foreground sm:inline">{username}</span>
+        <div className="flex items-center gap-1">
+          <span className="hidden pr-2 text-sm text-muted-foreground sm:inline">{username}</span>
           <Button
             variant="ghost"
             size="sm"
@@ -24,7 +24,7 @@ export function AppHeader({ username }: { username: string }) {
               navigate({ to: "/login" });
             }}
           >
-            <LogOut className="h-4 w-4" /> Afmelden
+            <LogOut className="size-4" /> Afmelden
           </Button>
         </div>
       </div>

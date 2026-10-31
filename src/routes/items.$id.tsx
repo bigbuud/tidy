@@ -2,24 +2,20 @@ import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-ro
 import { queryOptions, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, FileText, Paperclip, Pencil, Trash2, Upload } from "lucide-react";
+import { ArrowLeft, Paperclip, Pencil, Trash2, Upload } from "lucide-react";
 import { AppHeader } from "@/components/AppHeader";
 import { AssetDialog } from "@/components/AssetDialog";
+import { DocList } from "@/components/DocList";
 import { LogEditDialog } from "@/components/LogEditDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  addLog,
-  deleteAsset,
-  deleteDocument,
-  deleteLog,
-  getAsset,
-  type Doc,
-} from "@/lib/api.functions";
-import { categoryOf, euro, fileSize } from "@/lib/categories";
+import { addLog, deleteAsset, deleteLog, getAsset } from "@/lib/api.functions";
+import { categoryOf, euro, fmtDayMonth, fmtKm } from "@/lib/categories";
 import { requireAuth } from "@/lib/guard";
+import { uploadFiles } from "@/lib/uploads";
+import { cn } from "@/lib/utils";
 
 const assetQuery = (id: number) =>
   queryOptions({ queryKey: ["asset", id], queryFn: () => getAsset({ data: { id } }) });
@@ -41,21 +37,14 @@ export const Route = createFileRoute("/items/$id")({
   component: ItemPage,
 });
 
-async function uploadFiles(assetId: number, files: ArrayLike<File>, logId?: number) {
-  const fd = new FormData();
-  fd.set("assetId", String(assetId));
-  if (logId) fd.set("logId", String(logId));
-  Array.from(files).forEach((f) => fd.append("files", f));
-  const r = await fetch("/api/files", { method: "POST", body: fd });
-  if (!r.ok) throw new Error(await r.text());
-}
-
 // Lokale datum (toISOString() geeft de UTC-datum: tussen middernacht en 1u/2u 's nachts dus "gisteren").
 const today = () => {
   const d = new Date();
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 };
+
+const emptyForm = () => ({ date: today(), title: "", notes: "", cost: "", mileage: "" });
 
 function ItemPage() {
   const { user } = Route.useRouteContext();
@@ -67,7 +56,7 @@ function ItemPage() {
     qc.invalidateQueries({ queryKey: ["asset", id] });
     qc.invalidateQueries({ queryKey: ["assets"] });
   };
-  const [f, setF] = useState({ date: today(), title: "", notes: "", cost: "", mileage: "" });
+  const [f, setF] = useState(emptyForm());
   const [pending, setPending] = useState<FileList | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const generalRef = useRef<HTMLInputElement>(null);
@@ -79,31 +68,27 @@ function ItemPage() {
   const showMileage = asset.category === "auto" || asset.category === "moto";
   const generalDocs = docs.filter((d) => !d.log_id);
   const total = logs.reduce((s, l) => s + (l.cost ?? 0), 0);
+  const lastKm = logs.find((l) => l.mileage != null)?.mileage ?? null;
 
   return (
     <div className="min-h-screen">
       <AppHeader username={user.username} />
-      <main className="mx-auto max-w-5xl px-4 py-8">
+      <main className="mx-auto max-w-5xl px-4 py-8 sm:py-10">
         <Link
           to="/"
-          className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+          className="mb-5 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
-          <ArrowLeft className="h-4 w-4" /> Overzicht
+          <ArrowLeft className="size-4" /> Overzicht
         </Link>
 
-        <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
+        <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
           <div className="flex items-center gap-4">
-            <span className="grid h-14 w-14 place-items-center rounded-lg bg-primary text-primary-foreground">
-              <Icon className="h-7 w-7" />
+            <span className={cn("grid size-14 shrink-0 place-items-center rounded-2xl", cat.tone)}>
+              <Icon className="size-7" />
             </span>
-            <div>
-              <p className="text-xs uppercase tracking-wider text-muted-foreground">{cat.label}</p>
-              <h1 className="text-4xl font-bold">{asset.name}</h1>
-              {asset.description && (
-                <p className="mt-1 max-w-xl whitespace-pre-line text-muted-foreground">
-                  {asset.description}
-                </p>
-              )}
+            <div className="min-w-0">
+              <h1 className="font-display text-3xl font-bold sm:text-4xl">{asset.name}</h1>
+              <p className="text-sm text-muted-foreground">{cat.label}</p>
             </div>
           </div>
           <div className="flex gap-2">
@@ -111,7 +96,7 @@ function ItemPage() {
               initial={asset}
               trigger={
                 <Button variant="outline" size="sm">
-                  <Pencil className="h-4 w-4" /> Bewerken
+                  <Pencil className="size-4" /> Bewerken
                 </Button>
               }
               onSaved={refresh}
@@ -131,15 +116,49 @@ function ItemPage() {
                 }
               }}
             >
-              <Trash2 className="h-4 w-4" />
+              <Trash2 className="size-4" />
             </Button>
           </div>
         </div>
 
-        <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
-          <section>
+        {asset.description && (
+          <p className="mb-6 max-w-2xl whitespace-pre-line text-muted-foreground">
+            {asset.description}
+          </p>
+        )}
+
+        <dl
+          className={cn(
+            "mb-8 grid divide-x rounded-2xl border bg-card",
+            lastKm != null ? "grid-cols-3" : "grid-cols-2",
+          )}
+        >
+          <div className="px-4 py-3.5 sm:px-5">
+            <dt className="text-xs text-muted-foreground sm:text-sm">Totaal uitgegeven</dt>
+            <dd className="font-display text-xl font-semibold tabular-nums sm:text-2xl">
+              {euro(total)}
+            </dd>
+          </div>
+          <div className="px-4 py-3.5 sm:px-5">
+            <dt className="text-xs text-muted-foreground sm:text-sm">Logs</dt>
+            <dd className="font-display text-xl font-semibold tabular-nums sm:text-2xl">
+              {logs.length}
+            </dd>
+          </div>
+          {lastKm != null && (
+            <div className="px-4 py-3.5 sm:px-5">
+              <dt className="text-xs text-muted-foreground sm:text-sm">Laatste kilometerstand</dt>
+              <dd className="font-display text-xl font-semibold tabular-nums sm:text-2xl">
+                {fmtKm(lastKm)}
+              </dd>
+            </div>
+          )}
+        </dl>
+
+        <div className="grid gap-8 lg:grid-cols-[1fr_300px]">
+          <section className="min-w-0">
             <form
-              className="mb-8 space-y-3 rounded-lg border bg-card p-5 shadow-card"
+              className="mb-10 space-y-4 rounded-2xl border bg-card p-5"
               onSubmit={async (e) => {
                 e.preventDefault();
                 const cost = f.cost.trim() ? Number(f.cost.trim().replace(",", ".")) : null;
@@ -167,7 +186,7 @@ function ItemPage() {
                 // De log staat nu in de database: formulier altijd leegmaken, ook als de upload faalt,
                 // anders kan een nieuwe poging dezelfde log dubbel opslaan.
                 const toUpload = pending ? Array.from(pending) : []; // kopie: FileList wordt leeg bij value = ""
-                setF({ date: today(), title: "", notes: "", cost: "", mileage: "" });
+                setF(emptyForm());
                 setPending(null);
                 if (fileRef.current) fileRef.current.value = "";
                 if (toUpload.length) {
@@ -183,8 +202,8 @@ function ItemPage() {
                 toast.success("Log toegevoegd");
               }}
             >
-              <h2 className="text-xl font-bold">Nieuwe log</h2>
-              <div className="grid gap-3 sm:grid-cols-[150px_1fr]">
+              <h2 className="font-display text-lg font-semibold">Nieuwe log</h2>
+              <div className="grid gap-3 sm:grid-cols-[160px_1fr]">
                 <div className="space-y-1.5">
                   <Label htmlFor="ld">Datum</Label>
                   <Input
@@ -238,11 +257,11 @@ function ItemPage() {
                 />
               </div>
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
-                  <Paperclip className="h-4 w-4" />
+                <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-dashed px-3 py-2 text-sm text-muted-foreground transition-colors hover:border-input hover:text-foreground">
+                  <Paperclip className="size-4" />
                   {pending?.length
                     ? `${pending.length} bestand(en) gekozen`
-                    : "Factuur / bewijs bijvoegen"}
+                    : "Factuur of bewijs bijvoegen"}
                   <input
                     ref={fileRef}
                     type="file"
@@ -255,31 +274,49 @@ function ItemPage() {
               </div>
             </form>
 
-            <div className="mb-3 flex items-baseline justify-between">
-              <h2 className="text-2xl font-bold">Historiek</h2>
-              <span className="font-mono text-sm text-muted-foreground">totaal {euro(total)}</span>
-            </div>
+            <h2 className="mb-4 font-display text-xl font-semibold">Historiek</h2>
             {logs.length === 0 ? (
-              <p className="text-muted-foreground">Nog geen logs.</p>
+              <p className="rounded-2xl border border-dashed bg-card px-5 py-8 text-center text-muted-foreground">
+                Nog geen logs. Voeg hierboven de eerste toe.
+              </p>
             ) : (
-              <ol className="relative space-y-4 border-l-2 border-primary/30 pl-6">
+              <ol className="space-y-3">
                 {logs.map((l) => (
-                  <li key={l.id} className="relative">
-                    <span className="absolute -left-[31px] top-5 h-3 w-3 rounded-full border-2 border-card bg-accent" />
-                    <div className="rounded-lg border bg-card p-4">
+                  <li
+                    key={l.id}
+                    className="grid grid-cols-[4.25rem_1fr] gap-3 sm:grid-cols-[6rem_1fr] sm:gap-5"
+                  >
+                    <div className="pt-4 text-right">
+                      <p className="font-display text-base font-semibold leading-tight sm:text-lg">
+                        {fmtDayMonth(l.date)}
+                      </p>
+                      <p className="text-xs tabular-nums text-muted-foreground">
+                        {l.date.slice(0, 4)}
+                      </p>
+                      {l.mileage != null && (
+                        <p className="mt-1.5 text-xs tabular-nums text-muted-foreground">
+                          {fmtKm(l.mileage)}
+                        </p>
+                      )}
+                    </div>
+                    <div className="min-w-0 rounded-2xl border bg-card p-4">
                       <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="font-mono text-xs text-muted-foreground">
-                            {l.date}
-                            {l.mileage != null && ` · ${l.mileage.toLocaleString("nl-BE")} km`}
-                          </p>
-                          <h3 className="text-lg font-bold">{l.title}</h3>
-                        </div>
-                        <div className="flex items-center gap-1">
+                        <div className="min-w-0">
+                          <h3 className="text-base font-semibold">{l.title}</h3>
                           {l.cost != null && (
-                            <span className="font-mono text-sm">{euro(l.cost)}</span>
+                            <p className="text-sm font-medium tabular-nums text-muted-foreground">
+                              {euro(l.cost)}
+                            </p>
                           )}
-                          <LogEditDialog log={l} showMileage={showMileage} onSaved={refresh} />
+                        </div>
+                        <div className="-mr-1 -mt-1 flex shrink-0 items-center">
+                          <LogEditDialog
+                            log={l}
+                            assetId={id}
+                            docs={docs.filter((d) => d.log_id === l.id)}
+                            showMileage={showMileage}
+                            onSaved={refresh}
+                          />
                           <Button
                             variant="ghost"
                             size="icon"
@@ -294,12 +331,20 @@ function ItemPage() {
                               }
                             }}
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="size-4" />
                           </Button>
                         </div>
                       </div>
-                      {l.notes && <p className="mt-2 whitespace-pre-line text-sm">{l.notes}</p>}
-                      <DocList docs={docs.filter((d) => d.log_id === l.id)} onChange={refresh} />
+                      {l.notes && (
+                        <p className="mt-2 whitespace-pre-line text-sm text-muted-foreground">
+                          {l.notes}
+                        </p>
+                      )}
+                      <DocList
+                        className="mt-3"
+                        docs={docs.filter((d) => d.log_id === l.id)}
+                        onChange={refresh}
+                      />
                     </div>
                   </li>
                 ))}
@@ -307,10 +352,10 @@ function ItemPage() {
             )}
           </section>
 
-          <aside>
-            <div className="rounded-lg border bg-card p-5 shadow-card">
-              <h2 className="text-xl font-bold">Algemene documenten</h2>
-              <p className="mb-3 text-sm text-muted-foreground">
+          <aside className="lg:sticky lg:top-20 lg:self-start">
+            <div className="rounded-2xl border bg-card p-5">
+              <h2 className="font-display text-lg font-semibold">Algemene documenten</h2>
+              <p className="mb-4 text-sm text-muted-foreground">
                 Aankoopbewijs, garantie, handleiding…
               </p>
               <Button
@@ -318,7 +363,7 @@ function ItemPage() {
                 className="w-full"
                 onClick={() => generalRef.current?.click()}
               >
-                <Upload className="h-4 w-4" /> Uploaden
+                <Upload className="size-4" /> Uploaden
               </Button>
               <input
                 ref={generalRef}
@@ -337,48 +382,11 @@ function ItemPage() {
                   e.target.value = "";
                 }}
               />
-              <DocList docs={generalDocs} onChange={refresh} />
+              <DocList className="mt-4" docs={generalDocs} onChange={refresh} />
             </div>
           </aside>
         </div>
       </main>
     </div>
-  );
-}
-
-function DocList({ docs, onChange }: { docs: Doc[]; onChange: () => void }) {
-  if (!docs.length) return null;
-  return (
-    <ul className="mt-3 space-y-1 border-t pt-3">
-      {docs.map((d) => (
-        <li key={d.id} className="flex items-center gap-2 text-sm">
-          <FileText className="h-4 w-4 shrink-0 text-primary" />
-          <a
-            href={`/api/files/${d.id}`}
-            target="_blank"
-            rel="noreferrer"
-            className="min-w-0 flex-1 truncate hover:underline"
-          >
-            {d.filename}
-          </a>
-          <span className="font-mono text-xs text-muted-foreground">{fileSize(d.size)}</span>
-          <button
-            aria-label="Document verwijderen"
-            className="text-muted-foreground hover:text-destructive"
-            onClick={async () => {
-              if (!confirm(`${d.filename} verwijderen?`)) return;
-              try {
-                await deleteDocument({ data: { id: d.id } });
-                onChange();
-              } catch (err) {
-                toast.error((err as Error).message);
-              }
-            }}
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </button>
-        </li>
-      ))}
-    </ul>
   );
 }

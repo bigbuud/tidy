@@ -3,28 +3,11 @@
 @import "tw-animate-css";
 
 /* Lettertypen lokaal meegeleverd: geen externe verzoeken, werkt ook offline op je NAS. */
-@import "@fontsource-variable/fraunces/index.css";
-@import "@fontsource/ibm-plex-sans/400.css";
-@import "@fontsource/ibm-plex-sans/500.css";
-@import "@fontsource/ibm-plex-sans/600.css";
-@import "@fontsource/ibm-plex-mono/400.css";
-@import "@fontsource/ibm-plex-mono/500.css";
+@import "@fontsource-variable/bricolage-grotesque/index.css";
+@import "@fontsource-variable/figtree/index.css";
 
-@custom-variant dark (&:is(.dark *));
-
-/*
- * Design system definition.
- *
- * The @theme inline block maps CSS custom properties to Tailwind utility
- * classes (e.g. --color-primary -> bg-primary, text-primary).
- *
- * The :root and .dark blocks define the actual color values using oklch.
- * All colors MUST use oklch format.
- *
- * To add a new semantic color:
- * 1. Add the variable to :root (light value) and .dark (dark value)
- * 2. Register it in @theme inline as --color-<name>: var(--<name>)
- */
+/* Donkere modus volgt de instelling van je toestel. */
+@custom-variant dark (@media (prefers-color-scheme: dark));
 
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
@@ -32,8 +15,6 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
   --radius-2xl: calc(var(--radius) + 8px);
-  --radius-3xl: calc(var(--radius) + 12px);
-  --radius-4xl: calc(var(--radius) + 16px);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -48,88 +29,103 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-signal: var(--signal);
+  --color-signal-foreground: var(--signal-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --color-ring-offset-background: var(--background);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --font-display: "Fraunces Variable", Georgia, serif;
-  --font-sans: "IBM Plex Sans", system-ui, sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
-  --shadow-card: var(--shadow-card);
+  --font-display: "Bricolage Grotesque Variable", "Figtree Variable", system-ui, sans-serif;
+  --font-sans: "Figtree Variable", system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 }
 
+/*
+ * Kleuren: koel grijs met inkt-zwart als hoofdkleur. Het signaalgeel (zoals
+ * werkplaatsverf) is er alleen voor het merk, zodat het opvalt.
+ */
 :root {
-  --radius: 0.5rem;
-  --background: oklch(0.965 0.012 85);
-  --foreground: oklch(0.24 0.03 160);
-  --card: oklch(0.985 0.008 85);
-  --card-foreground: oklch(0.24 0.03 160);
-  --popover: oklch(0.985 0.008 85);
-  --popover-foreground: oklch(0.24 0.03 160);
-  --primary: oklch(0.36 0.07 160);
-  --primary-foreground: oklch(0.97 0.012 85);
-  --secondary: oklch(0.92 0.02 85);
-  --secondary-foreground: oklch(0.28 0.04 160);
-  --muted: oklch(0.93 0.015 85);
-  --muted-foreground: oklch(0.5 0.025 150);
-  --accent: oklch(0.78 0.14 70);
-  --accent-foreground: oklch(0.25 0.04 60);
-  --destructive: oklch(0.55 0.2 30);
-  --destructive-foreground: oklch(0.98 0 0);
-  --border: oklch(0.86 0.02 85);
-  --input: oklch(0.84 0.02 85);
-  --ring: oklch(0.55 0.09 160);
-  --chart-1: oklch(0.36 0.07 160);
-  --chart-2: oklch(0.78 0.14 70);
-  --chart-3: oklch(0.55 0.1 200);
-  --chart-4: oklch(0.6 0.15 40);
-  --chart-5: oklch(0.5 0.05 120);
-  --sidebar: oklch(0.95 0.015 85);
-  --sidebar-foreground: oklch(0.24 0.03 160);
-  --sidebar-primary: oklch(0.36 0.07 160);
-  --sidebar-primary-foreground: oklch(0.97 0.012 85);
-  --sidebar-accent: oklch(0.92 0.02 85);
-  --sidebar-accent-foreground: oklch(0.28 0.04 160);
-  --sidebar-border: oklch(0.86 0.02 85);
-  --sidebar-ring: oklch(0.55 0.09 160);
-  --shadow-card: 0 1px 0 oklch(0.86 0.02 85), 0 8px 24px -12px oklch(0.36 0.07 160 / 25%);
-  --pattern-lines: repeating-linear-gradient(
-    0deg,
-    transparent 0 31px,
-    oklch(0.36 0.07 160 / 6%) 31px 32px
-  );
+  color-scheme: light dark;
+  --radius: 0.75rem;
+  --background: #f1f3f5;
+  --foreground: #141b23;
+  --card: #ffffff;
+  --card-foreground: #141b23;
+  --popover: #ffffff;
+  --popover-foreground: #141b23;
+  --primary: #141b23;
+  --primary-foreground: #f8f9fa;
+  --secondary: #e8ecf0;
+  --secondary-foreground: #141b23;
+  --muted: #e8ecf0;
+  --muted-foreground: #5b6775;
+  --accent: #e8ecf0;
+  --accent-foreground: #141b23;
+  --signal: #f5bf1f;
+  --signal-foreground: #141b23;
+  --destructive: #c4372c;
+  --destructive-foreground: #ffffff;
+  --border: #dde2e8;
+  --input: #cbd2da;
+  --ring: #141b23;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0e1318;
+    --foreground: #e9edf1;
+    --card: #161d25;
+    --card-foreground: #e9edf1;
+    --popover: #161d25;
+    --popover-foreground: #e9edf1;
+    --primary: #f1f3f5;
+    --primary-foreground: #10161c;
+    --secondary: #1f2832;
+    --secondary-foreground: #e9edf1;
+    --muted: #1f2832;
+    --muted-foreground: #92a0ae;
+    --accent: #1f2832;
+    --accent-foreground: #e9edf1;
+    --destructive: #e5584c;
+    --border: #25303b;
+    --input: #33404d;
+    --ring: #e9edf1;
+  }
 }
 
 @layer base {
   * {
     border-color: var(--color-border);
   }
-
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
-    background-image: var(--pattern-lines);
+    font-size: 15px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
   }
   h1,
   h2,
   h3 {
     font-family: var(--font-display);
-    letter-spacing: -0.01em;
+    letter-spacing: -0.015em;
+  }
+  ::selection {
+    background: var(--signal);
+    color: var(--signal-foreground);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
   }
 }
