@@ -27,6 +27,7 @@ De data staat in het Docker-volume `logboek-data` (in de container: `/data`).
 | `PORT` | `3000` | Poort in de container (in de compose-file gekoppeld aan 4145) |
 | `DATA_DIR` | `/data` | Map voor database en documenten |
 | `COOKIE_SECURE` | `false` | Zet op `true` als je de app via HTTPS bereikt (bv. achter een reverse proxy). Anders wordt de sessiecookie ook over gewoon HTTP verstuurd. |
+| `TRUST_PROXY` | `false` | Zet op `true` achter Cloudflare of een reverse proxy: de blokkade na 5 mislukte logins geldt dan per IP-adres (uit `CF-Connecting-IP` of `X-Forwarded-For`). Zonder proxy laten staan op `false`, want die headers zijn dan vervalsbaar. |
 | `LOGBOEK_RESET_AUTH` | niet gezet | Zet tijdelijk op `true` om het account te verwijderen (je logs en documenten blijven) en de setup opnieuw te doorlopen. Daarna weer weghalen. |
 
 ### Back-up
@@ -41,7 +42,7 @@ docker compose start
 
 ### Toegang van buitenaf
 
-Zet de app niet rechtstreeks op het internet. Gebruik liever een VPN of een reverse proxy met HTTPS en zet dan `COOKIE_SECURE=true`. Na 5 mislukte aanmeldpogingen is aanmelden 5 minuten geblokkeerd.
+Zet de app niet rechtstreeks op het internet. Gebruik liever een VPN of een reverse proxy met HTTPS en zet dan `COOKIE_SECURE=true`. Na 5 mislukte aanmeldpogingen is aanmelden 5 minuten geblokkeerd (per IP-adres met `TRUST_PROXY=true`, anders voor iedereen). Na 30 mislukte pogingen in 15 minuten is aanmelden voor iedereen even dicht.
 
 ## Ontwikkelen
 

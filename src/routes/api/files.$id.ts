@@ -39,6 +39,7 @@ export const Route = createFileRoute("/api/files/$id")({
             "content-type": inline ? doc.mime : "application/octet-stream",
             "content-disposition": `${inline ? "inline" : "attachment"}; filename*=UTF-8''${encodeURIComponent(doc.filename)}`,
             "x-content-type-options": "nosniff",
+            "x-frame-options": "DENY",
             "cache-control": "private, no-store",
           },
         });

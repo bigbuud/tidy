@@ -10,6 +10,10 @@ services:
     environment:
       # Zet op "true" zodra je de app via HTTPS bereikt (bv. achter een reverse proxy).
       COOKIE_SECURE: "false"
+      # Zet op "true" als de app achter Cloudflare of Nginx Proxy Manager staat: dan geldt de
+      # blokkade na mislukte logins per IP-adres in plaats van voor iedereen samen.
+      # Laat op "false" als de app rechtstreeks bereikbaar is (de headers zijn dan vervalsbaar).
+      TRUST_PROXY: "false"
       # Alleen tijdelijk aanzetten om het account te resetten (data blijft behouden):
       # LOGBOEK_RESET_AUTH: "true"
     volumes:

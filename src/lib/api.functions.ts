@@ -110,7 +110,8 @@ export const login = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { getDb } = await database();
     const a = await auth();
-    a.assertNotLocked();
+    const key = a.clientKey();
+    a.assertNotLocked(key);
     const db = getDb();
     const user = db
       .prepare(
@@ -130,10 +131,10 @@ export const login = createServerFn({ method: "POST" })
       : a.verifyAgainstDummy(data.password);
     const step = user && pwOk ? a.checkTotp(user.totp_secret, user.username, data.code) : null;
     if (!user || !pwOk || step === null || step <= user.last_totp_step) {
-      a.registerFailure();
+      a.registerFailure(key);
       throw new Error("Gebruikersnaam, wachtwoord of code klopt niet");
     }
-    a.registerSuccess();
+    a.registerSuccess(key);
     db.prepare("UPDATE users SET last_totp_step = ? WHERE id = ?").run(step, user.id);
     a.createSession(user.id);
     return { ok: true };

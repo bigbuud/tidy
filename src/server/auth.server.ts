@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import * as OTPAuth from "otpauth";
-import { getCookie, setCookie, deleteCookie } from "@tanstack/react-start/server";
+import { getCookie, setCookie, deleteCookie, getRequestHeader } from "@tanstack/react-start/server";
 import { getDb } from "./db.server";
 
 export const SESSION_COOKIE = "logboek_sid";
@@ -108,22 +108,65 @@ export function parseCookie(header: string | null, name: string) {
   return undefined;
 }
 
-// Simple brute-force protection (single-user app, single process).
-let failures = 0;
-let lockedUntil = 0;
-export function assertNotLocked() {
-  if (Date.now() < lockedUntil) {
-    const min = Math.ceil((lockedUntil - Date.now()) / 60000);
+// ---------- Bescherming tegen gokken op het wachtwoord ----------
+// Per bezoeker (IP-adres) maximaal MAX_FAILURES mislukte pogingen, daarna LOCK_MS geblokkeerd.
+// Daarnaast een noodrem voor iedereen samen, voor als iemand IP-adressen vervalst.
+const MAX_FAILURES = 5;
+const LOCK_MS = 5 * 60 * 1000;
+const GLOBAL_MAX = 30;
+const GLOBAL_WINDOW_MS = 15 * 60 * 1000;
+
+type Attempt = { failures: number; lockedUntil: number; last: number };
+const attempts = new Map<string, Attempt>();
+let globalFailures: number[] = [];
+
+/**
+ * Sleutel voor de blokkade. Alleen met TRUST_PROXY=true wordt het IP uit de proxy-headers gelezen
+ * (Cloudflare of Nginx Proxy Manager). Zonder proxy zijn die headers vervalsbaar, dan geldt één teller voor iedereen.
+ */
+export function clientKey(): string {
+  if (process.env["TRUST_PROXY"] !== "true") return "iedereen";
+  const raw =
+    getRequestHeader("cf-connecting-ip") ??
+    getRequestHeader("x-forwarded-for")?.split(",")[0] ??
+    getRequestHeader("x-real-ip");
+  return raw?.trim().slice(0, 64) || "onbekend";
+}
+
+function prune(now: number) {
+  globalFailures = globalFailures.filter((t) => now - t < GLOBAL_WINDOW_MS);
+  if (attempts.size > 1000) {
+    for (const [k, a] of attempts)
+      if (now - a.last > LOCK_MS && now >= a.lockedUntil) attempts.delete(k);
+  }
+}
+
+export function assertNotLocked(key: string) {
+  const now = Date.now();
+  prune(now);
+  if (globalFailures.length >= GLOBAL_MAX) {
+    throw new Error("Te veel mislukte pogingen. Probeer het later opnieuw.");
+  }
+  const a = attempts.get(key);
+  if (a && now < a.lockedUntil) {
+    const min = Math.ceil((a.lockedUntil - now) / 60000);
     throw new Error(`Te veel mislukte pogingen. Probeer opnieuw over ${min} min.`);
   }
 }
-export function registerFailure() {
-  failures++;
-  if (failures >= 5) {
-    lockedUntil = Date.now() + 5 * 60 * 1000;
-    failures = 0;
+
+export function registerFailure(key: string) {
+  const now = Date.now();
+  globalFailures.push(now);
+  const a = attempts.get(key) ?? { failures: 0, lockedUntil: 0, last: now };
+  a.failures++;
+  a.last = now;
+  if (a.failures >= MAX_FAILURES) {
+    a.lockedUntil = now + LOCK_MS;
+    a.failures = 0;
   }
+  attempts.set(key, a);
 }
-export function registerSuccess() {
-  failures = 0;
+
+export function registerSuccess(key: string) {
+  attempts.delete(key);
 }
