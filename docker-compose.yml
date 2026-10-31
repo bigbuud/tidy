@@ -4,8 +4,8 @@ services:
     container_name: logboek
     restart: unless-stopped
     ports:
-      - "3000:3000"
-    environment:
+      - "4145:3000"
+    environment: "true"
       # Zet op "true" zodra je de app via HTTPS bereikt (bv. achter een reverse proxy).
       COOKIE_SECURE: "false"
       # Alleen tijdelijk aanzetten om het account te resetten (data blijft behouden):
