@@ -1,0 +1,16 @@
+# Alternatief: de image zelf bouwen uit de broncode (op een pc, of op een NAS met de repository erop).
+#   docker compose -f docker-compose.build.yml up -d --build
+services:
+  logboek:
+    build: .
+    container_name: logboek
+    restart: unless-stopped
+    ports:
+      - "4145:3000"
+    environment:
+      COOKIE_SECURE: "false"
+    volumes:
+      - logboek-data:/data
+
+volumes:
+  logboek-data:

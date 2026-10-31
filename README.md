@@ -7,15 +7,16 @@ Een eenvoudige, zelf te hosten app om onderhoud bij te houden van je auto, moto,
 - Alle data staat in één map: een SQLite-database en de geüploade bestanden
 - Draait als één container (NAS of Raspberry Pi), geen externe diensten of internetverbinding nodig
 
-## Draaien met Docker
+## Installeren op je NAS (kant-en-klare image)
 
-```sh
-git clone <deze-repository>
-cd <map>
-docker compose up -d --build
-```
+1. Push de code naar `main` op GitHub. De workflow in `.github/workflows/docker-image.yml` bouwt dan automatisch een image voor amd64 en arm64 en zet die op `ghcr.io/<gebruiker>/<repository>:latest`.
+2. Maak het pakket publiek: GitHub, je profiel, *Packages*, het pakket, *Package settings*, *Change visibility*. (Blijft het privé, doe dan eerst `docker login ghcr.io` op de NAS met een token met `read:packages`.)
+3. Zet `docker-compose.yml` op je NAS (bv. in Container Manager van Synology: *Project*, *Aanmaken*) en pas in de `image:`-regel `GEBRUIKER` en de repositorynaam aan.
+4. Start het project en open `http://<ip-van-je-nas>:4145`. Bij het eerste bezoek maak je je account aan en scan je de QR-code met je authenticator-app.
 
-Open daarna `http://<ip-van-je-nas>:3000`. Bij het eerste bezoek maak je je account aan en scan je de QR-code met je authenticator-app.
+Een nieuwe versie installeren: `docker compose pull && docker compose up -d`.
+
+Zelf bouwen in plaats van de image downloaden: `docker compose -f docker-compose.build.yml up -d --build`.
 
 De data staat in het Docker-volume `logboek-data` (in de container: `/data`).
 
@@ -23,7 +24,7 @@ De data staat in het Docker-volume `logboek-data` (in de container: `/data`).
 
 | Variabele | Standaard | Uitleg |
 | --- | --- | --- |
-| `PORT` | `3000` | Poort in de container |
+| `PORT` | `3000` | Poort in de container (in de compose-file gekoppeld aan 4145) |
 | `DATA_DIR` | `/data` | Map voor database en documenten |
 | `COOKIE_SECURE` | `false` | Zet op `true` als je de app via HTTPS bereikt (bv. achter een reverse proxy). Anders wordt de sessiecookie ook over gewoon HTTP verstuurd. |
 | `LOGBOEK_RESET_AUTH` | niet gezet | Zet tijdelijk op `true` om het account te verwijderen (je logs en documenten blijven) en de setup opnieuw te doorlopen. Daarna weer weghalen. |

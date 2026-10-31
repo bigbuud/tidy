@@ -1,11 +1,13 @@
+# Voor je NAS: haalt de kant-en-klare image op, je hebt de broncode niet nodig.
+# Vervang GEBRUIKER door je GitHub-gebruikersnaam (kleine letters) en "tidy" door de naam van je repository.
 services:
   logboek:
-    build: .
+    image: ghcr.io/GEBRUIKER/tidy:latest
     container_name: logboek
     restart: unless-stopped
     ports:
-      - "4145:3000"
-    environment: "true"
+      - "4145:3000" # app bereikbaar op http://<ip-van-je-nas>:4145
+    environment:
       # Zet op "true" zodra je de app via HTTPS bereikt (bv. achter een reverse proxy).
       COOKIE_SECURE: "false"
       # Alleen tijdelijk aanzetten om het account te resetten (data blijft behouden):
