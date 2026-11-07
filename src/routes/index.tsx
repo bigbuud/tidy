@@ -16,7 +16,7 @@ export const assetsQuery = queryOptions({ queryKey: ["assets"], queryFn: () => l
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Overzicht — Logboek" },
+      { title: "Overzicht — Tidy" },
       { name: "description", content: "Al je voertuigen, toestellen en onderhoud op één plek." },
     ],
   }),

@@ -1,11 +1,12 @@
 import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
 import { queryOptions, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, Paperclip, Pencil, Trash2, Upload } from "lucide-react";
+import { ArrowLeft, Pencil, Trash2 } from "lucide-react";
 import { AppHeader } from "@/components/AppHeader";
 import { AssetAvatar } from "@/components/AssetAvatar";
 import { AssetDialog } from "@/components/AssetDialog";
+import { AttachPicker } from "@/components/AttachPicker";
 import { DocList } from "@/components/DocList";
 import { LogEditDialog } from "@/components/LogEditDialog";
 import { Button } from "@/components/ui/button";
@@ -24,7 +25,7 @@ const assetQuery = (id: number) =>
 export const Route = createFileRoute("/items/$id")({
   head: () => ({
     meta: [
-      { title: "Item — Logboek" },
+      { title: "Item — Tidy" },
       { name: "description", content: "Onderhoudshistoriek en documenten van dit item." },
     ],
   }),
@@ -58,9 +59,7 @@ function ItemPage() {
     qc.invalidateQueries({ queryKey: ["assets"] });
   };
   const [f, setF] = useState(emptyForm());
-  const [pending, setPending] = useState<FileList | null>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
-  const generalRef = useRef<HTMLInputElement>(null);
+  const [pending, setPending] = useState<File[]>([]);
 
   if (!data) return null;
   const { asset, logs, docs } = data;
@@ -189,10 +188,9 @@ function ItemPage() {
                 }
                 // De log staat nu in de database: formulier altijd leegmaken, ook als de upload faalt,
                 // anders kan een nieuwe poging dezelfde log dubbel opslaan.
-                const toUpload = pending ? Array.from(pending) : []; // kopie: FileList wordt leeg bij value = ""
+                const toUpload = pending;
                 setF(emptyForm());
-                setPending(null);
-                if (fileRef.current) fileRef.current.value = "";
+                setPending([]);
                 if (toUpload.length) {
                   try {
                     await uploadFiles(id, toUpload, logId);
@@ -261,19 +259,11 @@ function ItemPage() {
                 />
               </div>
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-dashed px-3 py-2 text-sm text-muted-foreground transition-colors hover:border-input hover:text-foreground">
-                  <Paperclip className="size-4" />
-                  {pending?.length
-                    ? `${pending.length} bestand(en) gekozen`
-                    : "Factuur of bewijs bijvoegen"}
-                  <input
-                    ref={fileRef}
-                    type="file"
-                    multiple
-                    className="sr-only"
-                    onChange={(e) => setPending(e.target.files)}
-                  />
-                </label>
+                <AttachPicker
+                  count={pending.length}
+                  onPick={(files) => setPending((p) => [...p, ...files])}
+                  onClear={() => setPending([])}
+                />
                 <Button type="submit">Log opslaan</Button>
               </div>
             </form>
@@ -362,28 +352,17 @@ function ItemPage() {
               <p className="mb-4 text-sm text-muted-foreground">
                 Aankoopbewijs, garantie, handleiding…
               </p>
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => generalRef.current?.click()}
-              >
-                <Upload className="size-4" /> Uploaden
-              </Button>
-              <input
-                ref={generalRef}
-                type="file"
-                multiple
-                className="sr-only"
-                onChange={async (e) => {
-                  if (!e.target.files?.length) return;
+              <AttachPicker
+                label="Uploaden"
+                onPick={async (files) => {
+                  if (!files.length) return;
                   try {
-                    await uploadFiles(id, e.target.files);
+                    await uploadFiles(id, files);
                     refresh();
                     toast.success("Geüpload");
                   } catch (err) {
                     toast.error((err as Error).message);
                   }
-                  e.target.value = "";
                 }}
               />
               <DocList className="mt-4" docs={generalDocs} onChange={refresh} />

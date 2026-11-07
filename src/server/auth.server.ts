@@ -31,7 +31,7 @@ export function verifyAgainstDummy(pw: string) {
 
 export function makeTotp(secret: string, username: string) {
   return new OTPAuth.TOTP({
-    issuer: "Logboek",
+    issuer: "Tidy",
     label: username,
     algorithm: "SHA1",
     digits: 6,

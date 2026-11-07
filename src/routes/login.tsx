@@ -10,7 +10,7 @@ import { getAuthState, login } from "@/lib/api.functions";
 export const Route = createFileRoute("/login")({
   head: () => ({
     meta: [
-      { title: "Aanmelden — Logboek" },
+      { title: "Aanmelden — Tidy" },
       { name: "description", content: "Meld je aan bij je persoonlijke onderhoudslogboek." },
     ],
   }),
@@ -50,6 +50,9 @@ function LoginPage() {
           <Input
             id="u"
             autoComplete="username"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
             required
             value={f.username}
             onChange={(e) => setF({ ...f, username: e.target.value })}
@@ -73,11 +76,11 @@ function LoginPage() {
             inputMode="numeric"
             autoComplete="one-time-code"
             placeholder="123456"
-            maxLength={6}
             required
             className="font-mono tracking-[0.4em]"
             value={f.code}
-            onChange={(e) => setF({ ...f, code: e.target.value.replace(/\D/g, "") })}
+            // Authenticator-apps tonen "123 456": spaties weghalen i.p.v. de plakactie af te kappen.
+            onChange={(e) => setF({ ...f, code: e.target.value.replace(/\D/g, "").slice(0, 6) })}
           />
         </div>
         <Button type="submit" className="w-full" disabled={busy}>

@@ -12,7 +12,7 @@ export function AppHeader({ username }: { username: string }) {
           <span className="grid size-8 place-items-center rounded-lg bg-signal text-signal-foreground">
             <BookOpen className="size-[18px]" />
           </span>
-          <span className="font-display text-lg font-bold tracking-tight">Logboek</span>
+          <span className="font-display text-lg font-bold tracking-tight">Tidy</span>
         </Link>
         <div className="flex items-center gap-1">
           <span className="hidden pr-2 text-sm text-muted-foreground sm:inline">{username}</span>

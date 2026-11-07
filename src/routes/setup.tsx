@@ -10,7 +10,7 @@ import { getAuthState, setupComplete, setupInit } from "@/lib/api.functions";
 export const Route = createFileRoute("/setup")({
   head: () => ({
     meta: [
-      { title: "Eerste configuratie — Logboek" },
+      { title: "Eerste configuratie — Tidy" },
       { name: "description", content: "Maak je account aan en stel tweestapsverificatie in." },
     ],
   }),
@@ -57,6 +57,9 @@ function SetupPage() {
             <Input
               id="u"
               autoComplete="username"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
               required
               value={f.username}
               onChange={(e) => setF({ ...f, username: e.target.value })}

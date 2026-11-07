@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Paperclip, Pencil } from "lucide-react";
+import { Pencil } from "lucide-react";
 import { toast } from "sonner";
+import { AttachPicker } from "@/components/AttachPicker";
 import { DocList } from "@/components/DocList";
 import { Button } from "@/components/ui/button";
 import {
@@ -153,17 +154,12 @@ export function LogEditDialog({
           <div className="space-y-2">
             <Label>Bijlagen</Label>
             <DocList docs={docs} onChange={onSaved} />
-            <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed px-3 py-2.5 text-sm text-muted-foreground transition-colors hover:border-input hover:text-foreground">
-              <Paperclip className="size-4" />
-              {pending.length ? `${pending.length} bestand(en) gekozen` : "Bijlage toevoegen"}
-              <input
-                type="file"
-                multiple
-                className="sr-only"
-                aria-label="Bijlage toevoegen"
-                onChange={(e) => setPending(Array.from(e.target.files ?? []))}
-              />
-            </label>
+            <AttachPicker
+              label="Bijlage toevoegen"
+              count={pending.length}
+              onPick={(files) => setPending((p) => [...p, ...files])}
+              onClear={() => setPending([])}
+            />
           </div>
           <Button type="submit" className="w-full">
             Opslaan

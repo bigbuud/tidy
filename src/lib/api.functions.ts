@@ -117,7 +117,7 @@ export const login = createServerFn({ method: "POST" })
     const db = getDb();
     const user = db
       .prepare(
-        "SELECT id, username, password_hash, totp_secret, last_totp_step FROM users WHERE username = ?",
+        "SELECT id, username, password_hash, totp_secret, last_totp_step FROM users WHERE username = ? COLLATE NOCASE",
       )
       .get(data.username.trim()) as
       | {
@@ -128,10 +128,15 @@ export const login = createServerFn({ method: "POST" })
           last_totp_step: number;
         }
       | undefined;
+    // Telefoontoetsenborden maken van "roel" gemakkelijk "Roel" of voegen een spatie toe aan het wachtwoord:
+    // de gebruikersnaam is niet hoofdlettergevoelig en een spatie aan het eind wordt eventueel genegeerd.
+    const trimmed = data.password.trim();
     const pwOk = user
-      ? a.verifyPassword(data.password, user.password_hash)
+      ? a.verifyPassword(data.password, user.password_hash) ||
+        (trimmed !== data.password && a.verifyPassword(trimmed, user.password_hash))
       : a.verifyAgainstDummy(data.password);
-    const step = user && pwOk ? a.checkTotp(user.totp_secret, user.username, data.code) : null;
+    const code = data.code.replace(/\D/g, "");
+    const step = user && pwOk ? a.checkTotp(user.totp_secret, user.username, code) : null;
     if (!user || !pwOk || step === null || step <= user.last_totp_step) {
       a.registerFailure(key);
       throw new Error("Gebruikersnaam, wachtwoord of code klopt niet");

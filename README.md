@@ -1,4 +1,4 @@
-# Logboek (Tidy Asset Logbook)
+# Tidy
 
 Een eenvoudige, zelf te hosten app om onderhoud bij te houden van je auto, moto, verwarming, huis, tuin en toestellen. Per item bewaar je een historiek van logs (datum, wat, kost, kilometerstand, notities) en upload je documenten zoals facturen en bewijzen.
 
